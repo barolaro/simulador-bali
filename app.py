@@ -53,22 +53,22 @@ def proyeccion_y_comentario(nombre_subsidio, valores):
     st.plotly_chart(fig, use_container_width=True)
 
     sma_str = f"{sma[-1]:,.0f}" if sma[-1] else "N/A"
-    comentario = f"### 📊 Análisis Técnico: {nombre_subsidio}\n"
+    comentario = f"### Análisis Técnico: {nombre_subsidio}\n"
     comentario += f"- Proyección 2025 (Lineal): ${pred_lr:,.0f}\n"
-    comentario += f"{'- Proyección 2025 (Prophet): $' + f'{pred_prophet:,.0f}' if pred_prophet else '- ⚠️ No se generó proyección Prophet para 2025.'}\n"
+    comentario += f"{'- Proyección 2025 (Prophet): $' + f'{pred_prophet:,.0f}' if pred_prophet else '- No se generó proyección Prophet para 2025.'}\n"
     comentario += f"- Tasa de crecimiento anual (CAGR): {tasa_anual*100:.2f}%\n"
     comentario += f"- Volatilidad (Desviación estándar): ${desviacion:,.0f}\n"
-    comentario += f"- Tendencia: {'📈 Positiva' if tendencia > 0 else '📉 Negativa'}\n"
+    comentario += f"- Tendencia: {'Positiva' if tendencia > 0 else 'Negativa'}\n"
     comentario += f"- SMA últimos 2 años: {sma_str}"
 
     if crecimiento_total > 0.3 and tasa_anual > 0.1:
-        comentario += "\n- 🔼 Crecimiento sostenido. Evaluar relación con metas contractuales."
+        comentario += "\n- Crecimiento sostenido. Evaluar relación con metas contractuales."
     elif crecimiento_total < -0.1:
-        comentario += "\n- 🔽 Caída importante. Verificar cumplimiento del BALI."
+        comentario += "\n- Caída importante. Verificar cumplimiento del BALI."
     elif desviacion > (0.15 * np.mean(valores)):
-        comentario += "\n- ⚠️ Alta variabilidad. Requiere análisis más detallado."
+        comentario += "\n- Alta variabilidad. Requiere análisis más detallado."
     else:
-        comentario += "\n- ✅ Estabilidad aceptable. Monitoreo periódico sugerido."
+        comentario += "\n- Estabilidad aceptable. Monitoreo periódico sugerido."
 
     st.markdown(comentario)
 
