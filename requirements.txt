@@ -4,7 +4,6 @@ numpy
 plotly
 scikit-learn
 prophet
-pandas_ta
 matplotlib
 fpdf
 requests
