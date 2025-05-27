@@ -38,7 +38,7 @@ fig.update_layout(height=300, margin=dict(t=10, b=10), xaxis_title="Año", yaxis
 st.plotly_chart(fig, use_container_width=True)
 
 
-    st.subheader("🧠 Análisis automático")
+st.subheader("🧠 Análisis automático")
     interpretador(valores)
 
 # Interpreta tendencias
