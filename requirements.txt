@@ -1,10 +1,4 @@
 streamlit
-numpy
 pandas
-matplotlib
+plotly
 scikit-learn
-scipy
-openpyxl
-requests
-
-
