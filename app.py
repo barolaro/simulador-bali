@@ -5,99 +5,81 @@ import plotly.express as px
 from sklearn.linear_model import LinearRegression
 import requests
 
-st.set_page_config(page_title="Simulador BALI + Chat", layout="wide")
+st.set_page_config(page_title="Simulador Subsidios BALI + Chat", layout="wide")
+st.title("📊 Simulador de Subsidios Hospitalarios con Análisis BALI + Chat")
 
-st.title("📊 Simulador Integral de Subsidios BALI")
+st.markdown("Edita los datos históricos, visualiza la proyección 2025, interpreta automáticamente el comportamiento y haz consultas al contrato BALI.")
 
-TABS = ["Subsidio Fijo", "Subsidio Variable", "Sobredemanda Camas", "Alimentación Adicional", "ChatBALI"]
-tab = st.sidebar.radio("Navegación", TABS)
+API_KEY = st.secrets["CHATPDF_API_KEY"]
+SOURCE_ID = "cha_G85wPwqQ0gYG0SodoZPlh"  # <- ya confirmado que está activo
 
-def mostrar_grafico_y_analisis(nombre, df):
-    st.markdown(f"### 💡 Simulación para: {nombre}")
-    df = st.data_editor(df, num_rows="dynamic", use_container_width=True)
+def proyeccion_y_comentario(nombre_subsidio, valores):
+    df = pd.DataFrame({
+        "Año": [2021, 2022, 2023, 2024],
+        "Monto": valores
+    })
+    st.data_editor(df, num_rows="fixed", use_container_width=True)
 
-    if len(df) < 2:
-        st.warning("⚠️ Ingrese al menos dos años para proyectar.")
-        return
+    modelo = LinearRegression().fit(df[["Año"]], df["Monto"])
+    pred = modelo.predict([[2025]])[0]
 
-    años = df["Año"].to_numpy()
-    valores = df["Monto"].to_numpy()
-    modelo = LinearRegression().fit(años.reshape(-1, 1), valores)
-    pred = modelo.predict(np.array([[2025]]))[0]
-
-    fig = px.line(df, x="Año", y="Monto", markers=True, title=f"{nombre} - Histórico y Proyección")
+    fig = px.line(df, x="Año", y="Monto", markers=True, title=f"{nombre_subsidio} - Histórico y Proyección")
     fig.add_scatter(x=[2025], y=[pred], mode='markers+text',
-                    marker=dict(color="red", size=10),
-                    text=[f"Proy: ${pred:,.0f}"], textposition="top center")
-
+                    text=[f"Proy: ${pred:,.0f}"], textposition='top right',
+                    marker=dict(size=10, color='red'), name="Proyección 2025")
     st.plotly_chart(fig, use_container_width=True)
 
-    # Comentario basado en crecimiento
     crecimiento = (valores[-1] - valores[0]) / valores[0]
-    if crecimiento > 1:
-        st.success("📈 Crecimiento importante. Revisar Art. 1.12.2.3 del BALI sobre cumplimiento progresivo.")
+    if crecimiento > 0.2:
+        st.success(f"🔼 {nombre_subsidio} en fuerte alza. Evaluar impacto en resultados financieros y cumplimiento.")
     elif crecimiento < -0.1:
-        st.error("📉 Disminución significativa. Puede haber impacto en RS o penalidades. Ver art. 2.6.2.1.")
+        st.error(f"🔽 {nombre_subsidio} en caída. Requiere revisión conforme al contrato BALI.")
     else:
-        st.info("➡️ Comportamiento estable. Seguir monitoreando indicadores según el BALI.")
+        st.info(f"➡️ Comportamiento estable. Seguir monitoreando indicadores según el BALI.")
 
-if tab == "Subsidio Fijo":
-    df_fijo = pd.DataFrame({
-        "Año": [2021, 2022, 2023, 2024],
-        "Monto": [1000000000, 1020000000, 1040000000, 1060000000]
-    })
-    mostrar_grafico_y_analisis("Subsidio Fijo", df_fijo)
+# Sección por subsidio
+tabs = st.tabs(["Subsidio Fijo", "Subsidio Variable", "Subsidio Complementario", "Subsidio Especial", "🤖 ChatBali"])
 
-elif tab == "Subsidio Variable":
-    df_variable = pd.DataFrame({
-        "Año": [2021, 2022, 2023, 2024],
-        "Monto": [816375829, 2316612803, 1963167525, 2319599141]
-    })
-    mostrar_grafico_y_analisis("Subsidio Variable", df_variable)
+with tabs[0]:
+    st.subheader("Subsidio Fijo")
+    proyeccion_y_comentario("Subsidio Fijo", [1000000000, 1020000000, 1040000000, 1060000000])
 
-elif tab == "Sobredemanda Camas":
-    df_sobredemanda = pd.DataFrame({
-        "Año": [2021, 2022, 2023, 2024],
-        "Monto": [12000000, 13500000, 11000000, 15500000]
-    })
-    mostrar_grafico_y_analisis("Sobredemanda Camas", df_sobredemanda)
+with tabs[1]:
+    st.subheader("Subsidio Variable")
+    proyeccion_y_comentario("Subsidio Variable", [816375829, 2316612803, 1963167525, 2319599141])
 
-elif tab == "Alimentación Adicional":
-    df_alimentacion = pd.DataFrame({
-        "Año": [2021, 2022, 2023, 2024],
-        "Monto": [20000000, 21000000, 19000000, 25000000]
-    })
-    mostrar_grafico_y_analisis("Alimentación Adicional", df_alimentacion)
+with tabs[2]:
+    st.subheader("Subsidio Complementario")
+    proyeccion_y_comentario("Subsidio Complementario", [600000000, 630000000, 615000000, 640000000])
 
-elif tab == "ChatBALI":
-    st.header("💬 Consulta el Contrato BALI con IA")
-    st.markdown("Puedes preguntar directamente sobre artículos del contrato BALI cargado en ChatPDF.")
+with tabs[3]:
+    st.subheader("Subsidio Especial")
+    proyeccion_y_comentario("Subsidio Especial", [120000000, 130000000, 125000000, 128000000])
 
-    API_KEY = st.secrets["CHATPDF_API_KEY"]
-    SOURCE_ID = "cha_G85wPwqQ0gYG0SodoZPlh"  # ID válido de ChatPDF para contrato.pdf
+with tabs[4]:
+    st.subheader("💬 Consultas al Contrato BALI")
+    st.markdown("Pregunta lo que necesites sobre el contrato. Se usará el documento PDF cargado en ChatPDF.")
 
-    user_input = st.chat_input("Escribe tu duda sobre el contrato...")
+    with st.chat_message("assistant"):
+        st.markdown("""
+        **Bienvenido a ChatBali**. Puedes preguntar cosas como:
+        - ¿Cómo se calcula el subsidio complementario?
+        - ¿Qué pasa si el concesionario no cumple?
+        - ¿Dónde se describe el indicador de sobredemanda?
+        """)
 
+    user_input = st.chat_input("Tu consulta sobre el contrato...")
     if user_input:
         with st.chat_message("user"):
             st.markdown(user_input)
 
-        with st.spinner("⏳ Consultando contrato BALI..."):
-            headers = {
-                "x-api-key": API_KEY,
-                "Content-Type": "application/json"
-            }
-            data = {
-                "sourceId": SOURCE_ID,
-                "messages": [
-                    { "role": "user", "content": user_input }
-                ]
-            }
+        with st.spinner("🔄 Consultando el documento..."):
+            headers = {"x-api-key": API_KEY, "Content-Type": "application/json"}
+            data = {"sourceId": SOURCE_ID, "messages": [{"role": "user", "content": user_input}]}
             response = requests.post("https://api.chatpdf.com/v1/chats/message", json=data, headers=headers)
 
             if response.status_code == 200:
-                result = response.json()
                 with st.chat_message("assistant"):
-                    st.markdown(result["content"])
+                    st.markdown(response.json()["content"])
             else:
-                st.error("⚠️ Error en la API. Revisa tu clave o el ID del documento.")
+                st.error("❌ No se pudo contactar correctamente a ChatPDF. Revisa la clave o el sourceId.")
