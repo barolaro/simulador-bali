@@ -38,7 +38,7 @@ def proyeccion_y_comentario(nombre_subsidio, valores):
         st.info(f"➡️ Comportamiento estable. Seguir monitoreando indicadores según el BALI.")
 
 # Sección por subsidio
-tabs = st.tabs(["Subsidio Fijo", "Subsidio Variable", "Subsidio Complementario", "Subsidio Especial", "🤖 ChatBali"])
+tabs = st.tabs(["Subsidio Fijo", "Subsidio Variable", "Sobredemanda de Camas", "Subsidio Alimentación Adicional", "🤖 ChatBali"])
 
 with tabs[0]:
     st.subheader("Subsidio Fijo")
@@ -49,12 +49,12 @@ with tabs[1]:
     proyeccion_y_comentario("Subsidio Variable", [816375829, 2316612803, 1963167525, 2319599141])
 
 with tabs[2]:
-    st.subheader("Subsidio Complementario")
-    proyeccion_y_comentario("Subsidio Complementario", [600000000, 630000000, 615000000, 640000000])
+    st.subheader("Sobredemanda de Camas")
+    proyeccion_y_comentario("Sobredemanda de Camas", [600000000, 630000000, 615000000, 640000000])
 
 with tabs[3]:
-    st.subheader("Subsidio Especial")
-    proyeccion_y_comentario("Subsidio Especial", [120000000, 130000000, 125000000, 128000000])
+    st.subheader("Subsidio Alimentación Adicional")
+    proyeccion_y_comentario("Subsidio Alimentación Adicional", [120000000, 130000000, 125000000, 128000000])
 
 with tabs[4]:
     st.subheader("💬 Consultas al Contrato BALI")
