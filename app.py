@@ -18,31 +18,33 @@ st.markdown("Edita los datos históricos, visualiza la proyección 2025, interpr
 def remove_non_ascii(text):
     return ''.join(char for char in text if ord(char) < 128)
 
-def proyeccion_y_comentario(nombre_subsidio, valores):
+def proyeccion_y_comentario(nombre_subsidio, valores_iniciales):
     df = pd.DataFrame({
-        "ds": pd.to_datetime([f"{a}-01-01" for a in [2021, 2022, 2023, 2024]]),
-        "y": valores
+        "Año": [2021, 2022, 2023, 2024],
+        "Monto": valores_iniciales
     })
-    st.data_editor(df.rename(columns={"ds": "Año", "y": "Monto"}), num_rows="fixed", use_container_width=True)
+    df_editado = st.data_editor(df, num_rows="fixed", use_container_width=True)
+    df_editado["ds"] = pd.to_datetime(df_editado["Año"].astype(str) + "-01-01")
+    df_editado = df_editado.rename(columns={"Monto": "y"})[["ds", "y"]]
 
-    x = np.array([2021, 2022, 2023, 2024]).reshape(-1, 1)
-    modelo = LinearRegression().fit(x, df["y"])
+    x = np.array([fecha.year for fecha in df_editado["ds"]]).reshape(-1, 1)
+    modelo = LinearRegression().fit(x, df_editado["y"])
     pred_lr = modelo.predict([[2025]])[0]
 
     modelo_prophet = Prophet()
-    modelo_prophet.fit(df)
+    modelo_prophet.fit(df_editado)
     future = modelo_prophet.make_future_dataframe(periods=1, freq='Y')
     forecast = modelo_prophet.predict(future)
     forecast_2025 = forecast[forecast["ds"].dt.year == 2025]
     pred_prophet = forecast_2025["yhat"].values[0] if not forecast_2025.empty else None
 
-    sma = df["y"].rolling(window=2).mean().tolist()
-    crecimiento_total = (valores[-1] - valores[0]) / valores[0]
-    tasa_anual = ((valores[-1] / valores[0]) ** (1 / (len(valores) - 1))) - 1
-    desviacion = np.std(valores)
+    sma = df_editado["y"].rolling(window=2).mean().tolist()
+    crecimiento_total = (df_editado["y"].iloc[-1] - df_editado["y"].iloc[0]) / df_editado["y"].iloc[0]
+    tasa_anual = ((df_editado["y"].iloc[-1] / df_editado["y"].iloc[0]) ** (1 / (len(df_editado) - 1))) - 1
+    desviacion = np.std(df_editado["y"])
     tendencia = modelo.coef_[0]
 
-    fig = px.line(df, x="ds", y="y", markers=True, title=f"{nombre_subsidio} - Histórico y Proyección 2025")
+    fig = px.line(df_editado, x="ds", y="y", markers=True, title=f"{nombre_subsidio} - Histórico y Proyección 2025")
     fig.add_scatter(x=[pd.to_datetime("2025-01-01")], y=[pred_lr], mode='markers+text',
                     text=[f"LR: ${pred_lr:,.0f}"], textposition='top right',
                     marker=dict(size=12, color='red'), name="Proy. Lineal")
@@ -65,7 +67,7 @@ def proyeccion_y_comentario(nombre_subsidio, valores):
         comentario += "\n- Crecimiento sostenido. Evaluar relación con metas contractuales."
     elif crecimiento_total < -0.1:
         comentario += "\n- Caída importante. Verificar cumplimiento del BALI."
-    elif desviacion > (0.15 * np.mean(valores)):
+    elif desviacion > (0.15 * np.mean(df_editado["y"])):
         comentario += "\n- Alta variabilidad. Requiere análisis más detallado."
     else:
         comentario += "\n- Estabilidad aceptable. Monitoreo periódico sugerido."
@@ -81,7 +83,7 @@ def proyeccion_y_comentario(nombre_subsidio, valores):
 
         buf = io.BytesIO()
         plt.figure()
-        plt.plot(df["ds"].dt.year, df["y"], marker='o', label='Histórico')
+        plt.plot(df_editado["ds"].dt.year, df_editado["y"], marker='o', label='Histórico')
         plt.plot(2025, pred_lr, 'ro', label='Proy. Lineal')
         if pred_prophet:
             plt.plot(2025, pred_prophet, 'go', label='Proy. Prophet')
