@@ -31,7 +31,8 @@ def proyeccion_y_comentario(nombre_subsidio, valores):
     modelo_prophet.fit(prophet_df)
     future = modelo_prophet.make_future_dataframe(periods=1, freq='Y')
     forecast = modelo_prophet.predict(future)
-    pred_prophet = forecast.loc[forecast['ds'].dt.year == 2025, 'yhat'].values[0]
+    forecast_2025 = forecast[forecast["ds"].dt.year == 2025]
+    pred_prophet = forecast_2025["yhat"].values[0] if not forecast_2025.empty else None
 
     sma = df["y"].rolling(window=2).mean().tolist()
 
@@ -44,16 +45,17 @@ def proyeccion_y_comentario(nombre_subsidio, valores):
     fig.add_scatter(x=[pd.to_datetime("2025-01-01")], y=[pred_lr], mode='markers+text',
                     text=[f"LR: ${pred_lr:,.0f}"], textposition='top right',
                     marker=dict(size=12, color='red'), name="Proy. Lineal")
-    fig.add_scatter(x=[pd.to_datetime("2025-01-01")], y=[pred_prophet], mode='markers+text',
-                    text=[f"Prophet: ${pred_prophet:,.0f}"], textposition='bottom left',
-                    marker=dict(size=12, color='green'), name="Proy. Prophet")
+    if pred_prophet is not None:
+        fig.add_scatter(x=[pd.to_datetime("2025-01-01")], y=[pred_prophet], mode='markers+text',
+                        text=[f"Prophet: ${pred_prophet:,.0f}"], textposition='bottom left',
+                        marker=dict(size=12, color='green'), name="Proy. Prophet")
     st.plotly_chart(fig, use_container_width=True)
 
     sma_str = f"{sma[-1]:,.0f}" if sma[-1] else "N/A"
     comentario = f"""
 ### 📊 Análisis Técnico: {nombre_subsidio}
 - Proyección 2025 (Lineal): ${pred_lr:,.0f}
-- Proyección 2025 (Prophet): ${pred_prophet:,.0f}
+{"- Proyección 2025 (Prophet): $" + f"{pred_prophet:,.0f}" if pred_prophet else "- ⚠️ No se generó proyección Prophet para 2025."}
 - Tasa de crecimiento anual (CAGR): {tasa_anual*100:.2f}%
 - Volatilidad (Desviación estándar): ${desviacion:,.0f}
 - Tendencia: {'📈 Positiva' if tendencia > 0 else '📉 Negativa'}
@@ -81,7 +83,8 @@ def proyeccion_y_comentario(nombre_subsidio, valores):
         plt.figure()
         plt.plot(df["ds"].dt.year, df["y"], marker='o', label='Histórico')
         plt.plot(2025, pred_lr, 'ro', label='Proy. Lineal')
-        plt.plot(2025, pred_prophet, 'go', label='Proy. Prophet')
+        if pred_prophet:
+            plt.plot(2025, pred_prophet, 'go', label='Proy. Prophet')
         plt.legend()
         plt.title(nombre_subsidio)
         plt.xlabel("Año")
@@ -104,7 +107,6 @@ def proyeccion_y_comentario(nombre_subsidio, valores):
         os.remove(img_path)
         os.remove(pdf_output)
 
-# Tabs de subsidios + ChatBali
 tabs = st.tabs([
     "Subsidio Fijo", "Subsidio Variable", "Sobredemanda de Camas",
     "Subsidio Alimentación Adicional", "🤖 ChatBali"
