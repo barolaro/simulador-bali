@@ -16,6 +16,19 @@ st.title("📊 Simulador de Subsidios Hospitalarios con Análisis BALI + Chat")
 def remove_non_ascii(text):
     return ''.join(char for char in text if ord(char) < 128)
 
+def obtener_comentario_chatbali(nombre_subsidio):
+    try:
+        headers = {"x-api-key": st.secrets["CHATPDF_API_KEY"], "Content-Type": "application/json"}
+        prompt = f"Explica en máximo 100 palabras el subsidio '{nombre_subsidio}' según el contrato BALI, indicando su definición, condiciones y aplicación."
+        data = {"sourceId": "cha_G85wPwqQ0gYG0SodoZPlh", "messages": [{"role": "user", "content": prompt}]}
+        response = requests.post("https://api.chatpdf.com/v1/chats/message", json=data, headers=headers)
+        if response.status_code == 200:
+            return response.json()["content"]
+        else:
+            return "❌ No se pudo obtener el comentario del contrato BALI."
+    except Exception as e:
+        return f"❌ Error al conectar con ChatBali: {e}"
+
 def proyeccion_y_comentario(nombre_subsidio, valores_iniciales):
     df = pd.DataFrame({
         "Año": [2021, 2022, 2023, 2024],
@@ -32,12 +45,8 @@ def proyeccion_y_comentario(nombre_subsidio, valores_iniciales):
     modelo_prophet = Prophet()
     modelo_prophet.fit(df_editado)
 
-    # Generar hasta el año siguiente del último año ingresado
-    ultimo_anio = df_editado["ds"].dt.year.max()
-    total_anios = 6  # 4 históricos + 2025 + 2026
-
     future = pd.DataFrame({
-        "ds": pd.date_range(start=f"{df_editado['ds'].dt.year.min()}-01-01", periods=total_anios, freq="Y")
+        "ds": pd.date_range(start=f"{df_editado['ds'].dt.year.min()}-01-01", periods=6, freq="Y")
     })
 
     forecast = modelo_prophet.predict(future)
@@ -62,7 +71,7 @@ def proyeccion_y_comentario(nombre_subsidio, valores_iniciales):
     st.plotly_chart(fig, use_container_width=True)
 
     sma_str = f"{sma[-1]:,.0f}" if sma[-1] else "N/A"
-    comentario = f"Análisis Técnico: {nombre_subsidio}\n"
+    comentario = f"**📈 Análisis Técnico: {nombre_subsidio}**\n"
     comentario += f"- Proyección 2025 (Lineal): ${pred_lr:,.0f}\n"
     comentario += f"{'- Proyección 2025 (Prophet): $' + f'{pred_prophet:,.0f}' if pred_prophet else '- No se generó proyección Prophet para 2025.'}\n"
     comentario += f"- Tasa de crecimiento anual (CAGR): {tasa_anual*100:.2f}%\n"
@@ -81,40 +90,9 @@ def proyeccion_y_comentario(nombre_subsidio, valores_iniciales):
 
     st.markdown(comentario)
 
-    if st.button(f"📄 Descargar Análisis PDF - {nombre_subsidio}"):
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Arial", size=12)
-        comentario_clean = remove_non_ascii(comentario)
-        pdf.multi_cell(0, 10, comentario_clean)
-
-        buf = io.BytesIO()
-        plt.figure()
-        plt.plot(df_editado["ds"].dt.year, df_editado["y"], marker='o', label='Histórico')
-        plt.plot(2025, pred_lr, 'ro', label='Proy. Lineal')
-        if pred_prophet:
-            plt.plot(2025, pred_prophet, 'go', label='Proy. Prophet')
-        plt.legend()
-        plt.title(nombre_subsidio)
-        plt.xlabel("Año")
-        plt.ylabel("Monto")
-        plt.tight_layout()
-        plt.savefig(buf, format="png")
-        plt.close()
-
-        buf.seek(0)
-        img_path = "grafico_temp.png"
-        with open(img_path, "wb") as f:
-            f.write(buf.read())
-        pdf.image(img_path, x=10, y=pdf.get_y(), w=180)
-
-        pdf_output = f"{nombre_subsidio.replace(' ', '_')}_analisis.pdf"
-        pdf.output(pdf_output)
-        with open(pdf_output, "rb") as f:
-            st.download_button("⬇️ Descargar PDF", f, file_name=pdf_output, mime="application/pdf")
-
-        os.remove(img_path)
-        os.remove(pdf_output)
+    with st.spinner("🧠 Generando interpretación del contrato BALI..."):
+        comentario_chatbali = obtener_comentario_chatbali(nombre_subsidio)
+        st.info(f"📘 Interpretación BALI: {comentario_chatbali}")
 
 tabs = st.tabs([
     "Subsidio Fijo", "Subsidio Variable", "Sobredemanda de Camas",
