@@ -7,10 +7,10 @@ from sklearn.linear_model import LinearRegression
 from scipy.optimize import curve_fit
 import requests
 
-st.set_page_config(page_title="Simulador de Subsidios Hospitalarios - BALI", layout="wide")
+st.set_page_config(page_title="Simulador BALI", layout="wide", page_icon="📊")
 
-st.title("📊 Simulador de Subsidios Hospitalarios")
-st.caption("Proyecciones, simulación y análisis automático según el documento BALI")
+st.markdown("<h1 style='text-align: center; color: #1E90FF;'>📊 Simulador BALI: Subsidios y Análisis</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: gray;'>Visualización y consulta inteligente del documento BALI</p>", unsafe_allow_html=True)
 
 tabs = st.tabs(["Subsidio Fijo", "Subsidio Variable", "Sobredemanda de Camas", "Alimentación", "📄 ChatBALI"])
 
@@ -29,7 +29,7 @@ def editor_y_grafico(nombre, años_base, valores_base, base_year, label_y, inter
         params, _ = curve_fit(modelo_exp, años, valores, maxfev=10000)
         pred_exponencial = modelo_exp(2025, *params)
 
-        fig, ax = plt.subplots(figsize=(6, 4))
+        fig, ax = plt.subplots(figsize=(4, 2.5))
         ax.plot(años, valores, 'o', label="Histórico")
         ax.plot(np.append(años, 2025), modelo.predict(np.append(años, 2025).reshape(-1, 1)), '--', label="Lineal")
         ax.plot(np.append(años, 2025), modelo_exp(np.append(años, 2025), *params), '--', label="Exponencial")
@@ -135,3 +135,32 @@ with tabs[4]:
                     st.markdown(result["content"])
             else:
                 st.error("❌ Error al conectar con ChatPDF.")
+
+
+# --- 📥 BOTÓN DE DESCARGA DE DATOS EN EXCEL ---
+import io
+import base64
+
+def generar_excel():
+    writer = pd.ExcelWriter("simulador_export.xlsx", engine='xlsxwriter')
+    pd.DataFrame({
+        "Año": [2020, 2021, 2022, 2023, 2024],
+        "Subsidio Fijo": [3182836153, 6789450876, 7067472653, 8106304345, 12075185403],
+        "Subsidio Variable": [None, 816375829, 2316612803, 1963167525, 2319599141],
+        "Sobredemanda Camas": [None, 673988.81, 90545974, 33401975, 3076438.79],
+        "Alimentación Adicional": [254466335, 118404126, 263997309, 584616195, 474433993]
+    }).to_excel(writer, index=False, sheet_name="Subsidios")
+    writer.close()
+
+    with open("simulador_export.xlsx", "rb") as f:
+        b64 = base64.b64encode(f.read()).decode()
+        href = f'<a href="data:application/octet-stream;base64,{b64}" download="simulador_subsidios.xlsx">📥 Descargar Excel</a>'
+        return href
+
+with st.expander("📤 Exportar resultados"):
+    st.markdown(generar_excel(), unsafe_allow_html=True)
+
+# --- ANIMACIÓN DE CARGA DECORATIVA ---
+with st.spinner("🔄 Cargando componentes visuales..."):
+    import time
+    time.sleep(1)
