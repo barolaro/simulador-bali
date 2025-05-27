@@ -6,4 +6,4 @@ scikit-learn
 requests
 plotly
 xlsxwriter
-plotly
+beautifulsoup4
