@@ -1,9 +1,10 @@
 streamlit
-pandas
 numpy
+pandas
 matplotlib
 scikit-learn
+scipy
+openpyxl
 requests
-plotly
-xlsxwriter
-beautifulsoup4
+
+
