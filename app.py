@@ -13,8 +13,6 @@ import requests
 st.set_page_config(page_title="Simulador Subsidios BALI + Chat", layout="wide")
 st.title("📊 Simulador de Subsidios Hospitalarios con Análisis BALI + Chat")
 
-st.markdown("Edita los datos históricos, visualiza la proyección 2025, interpreta automáticamente el comportamiento, descarga el análisis y haz consultas al contrato.")
-
 def remove_non_ascii(text):
     return ''.join(char for char in text if ord(char) < 128)
 
@@ -33,9 +31,18 @@ def proyeccion_y_comentario(nombre_subsidio, valores_iniciales):
 
     modelo_prophet = Prophet()
     modelo_prophet.fit(df_editado)
-    future = modelo_prophet.make_future_dataframe(periods=1, freq='Y')
+
+    # Generar hasta el año siguiente del último año ingresado
+    ultimo_anio = df_editado["ds"].dt.year.max()
+    total_anios = 6  # 4 históricos + 2025 + 2026
+
+    future = pd.DataFrame({
+        "ds": pd.date_range(start=f"{df_editado['ds'].dt.year.min()}-01-01", periods=total_anios, freq="Y")
+    })
+
     forecast = modelo_prophet.predict(future)
-    forecast_2025 = forecast[forecast["ds"].dt.year == 2025]
+    forecast["year"] = forecast["ds"].dt.year
+    forecast_2025 = forecast[forecast["year"] == 2025]
     pred_prophet = forecast_2025["yhat"].values[0] if not forecast_2025.empty else None
 
     sma = df_editado["y"].rolling(window=2).mean().tolist()
