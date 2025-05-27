@@ -4,7 +4,6 @@ import numpy as np
 import plotly.express as px
 from sklearn.linear_model import LinearRegression
 from prophet import Prophet
-import pandas_ta as ta
 import matplotlib.pyplot as plt
 from fpdf import FPDF
 import io
@@ -34,7 +33,7 @@ def proyeccion_y_comentario(nombre_subsidio, valores):
     forecast = modelo_prophet.predict(future)
     pred_prophet = forecast.loc[forecast['ds'].dt.year == 2025, 'yhat'].values[0]
 
-    sma = df.ta.sma(length=2)["SMA_2"].tolist()
+    sma = df["y"].rolling(window=2).mean().tolist()
 
     crecimiento_total = (valores[-1] - valores[0]) / valores[0]
     tasa_anual = ((valores[-1] / valores[0]) ** (1 / (len(valores) - 1))) - 1
@@ -105,7 +104,7 @@ def proyeccion_y_comentario(nombre_subsidio, valores):
         os.remove(img_path)
         os.remove(pdf_output)
 
-# Tabs de subsidios
+# Tabs de subsidios + ChatBali
 tabs = st.tabs([
     "Subsidio Fijo", "Subsidio Variable", "Sobredemanda de Camas",
     "Subsidio Alimentación Adicional", "🤖 ChatBali"
